@@ -7,20 +7,43 @@
   <p>検索住所：{{ address }}</p>
 {% endif %}
 
+{% if requested_features %}
+  <p>希望条件：{% for feature in requested_features %}{{ feature_labels.get(feature, feature) }}{% if not loop.last %}、{% endif %}{% endfor %}</p>
+{% endif %}
+
 {% if error %}
   <p>{{ error }}</p>
 {% endif %}
 
 {% if results %}
-  <ul>
+  <div class="table-wrapper">
+  <table class="shelter-results">
+    <thead>
+      <tr>
+        <th>避難所</th>
+        <th>距離</th>
+        <th>空き状況</th>
+        <th>ペット同伴</th>
+        <th>バリアフリー</th>
+        <th>多目的トイレ</th>
+        <th>視覚・聴覚対応</th>
+      </tr>
+    </thead>
+    <tbody>
     {% for shelter in results %}
-    <li>
-      <strong>{{ shelter.name }}</strong>
-      {% if shelter.distance_km is defined %}（約{{ shelter.distance_km }} km）{% endif %}
-      {% if shelter.address %}<br>{{ shelter.address }}{% endif %}
-    </li>
+      <tr>
+        <th scope="row">{{ shelter.name }}<br><small>{{ shelter.address }}</small></th>
+        <td>{{ shelter.distance_km }} km</td>
+        <td>{{ shelter.availability|default('不明', true) }}</td>
+        <td>{{ '対応' if shelter.pets_allowed else '非対応' }}</td>
+        <td>{{ '対応' if shelter.wheelchair else '非対応' }}</td>
+        <td>{{ 'あり' if shelter.multipurpose_toilet else 'なし' }}</td>
+        <td>{{ 'あり' if shelter.sensory_support else 'なし' }}</td>
+      </tr>
     {% endfor %}
-  </ul>
+    </tbody>
+  </table>
+  </div>
 {% else %}
   <p>該当する避難所が見つかりませんでした</p>
 {% endif %}

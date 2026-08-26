@@ -211,6 +211,35 @@ def shelters_by_distance(address):
     return sorted(results, key=lambda shelter: shelter['distance_km'])
 
 
+SEARCH_FEATURES = {
+    'wheelchair': '車いす対応',
+    'multipurpose_toilet': '多目的トイレ',
+    'sensory_support': '視覚・聴覚障碍者向け施設',
+    'pets_allowed': 'ペット可'
+}
+
+
+def shelters_by_suitability(address, requested_features):
+    """条件を満たす避難所を優先し、同点なら距離順に返す。"""
+    results = shelters_by_distance(address)
+    if results is None:
+        return None
+
+    requested_features = [
+        feature for feature in requested_features
+        if feature in SEARCH_FEATURES
+    ]
+    for shelter in results:
+        shelter['matched_features'] = sum(
+            bool(shelter.get(feature)) for feature in requested_features
+        )
+        shelter['requested_features_count'] = len(requested_features)
+    return sorted(
+        results,
+        key=lambda shelter: (-shelter['matched_features'], shelter['distance_km'])
+    )
+
+
 def parse_area_warnings(warning_data):
     """気象庁の新形式JSONから対象市区町村の発表・継続中の情報を抽出する"""
     if not isinstance(warning_data, list):
@@ -470,15 +499,17 @@ def board():
 @app.route('/search_results')
 def search_results():
     address = request.args.get('address', '').strip()
+    requested_features = request.args.getlist('features')
     if not address:
         return redirect(url_for('shelter_search'))
 
-    results = shelters_by_distance(address)
+    results = shelters_by_suitability(address, requested_features)
     if results is None:
         return render_template(
             'search_results.html',
             results=[],
             address=address,
+            requested_features=requested_features,
             error='入力された住所を確認できませんでした。'
         )
     error = None
@@ -488,6 +519,8 @@ def search_results():
         'search_results.html',
         results=results,
         address=address,
+        requested_features=requested_features,
+        feature_labels=SEARCH_FEATURES,
         error=error
     )
 

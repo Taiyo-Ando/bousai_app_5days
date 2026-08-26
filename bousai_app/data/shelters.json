@@ -4,20 +4,35 @@
     "name": "青森市立浦町小学校",
     "address": "青森県青森市中央二丁目13",
     "latitude": 40.8186633,
-    "longitude": 140.7490801
+    "longitude": 140.7490801,
+    "availability": "空きあり",
+    "wheelchair": true,
+    "multipurpose_toilet": true,
+    "sensory_support": false,
+    "pets_allowed": false
   },
   {
     "id": 2,
     "name": "青森市立筒井小学校",
     "address": "青森県青森市筒井一丁目",
     "latitude": 40.8086251,
-    "longitude": 140.7645086
+    "longitude": 140.7645086,
+    "availability": "空きあり",
+    "wheelchair": true,
+    "multipurpose_toilet": true,
+    "sensory_support": true,
+    "pets_allowed": false
   },
   {
     "id": 3,
     "name": "青森市立堤小学校",
     "address": "青森県青森市松原二丁目",
     "latitude": 40.8193517,
-    "longitude": 140.7615344
+    "longitude": 140.7615344,
+    "availability": "空きあり",
+    "wheelchair": true,
+    "multipurpose_toilet": true,
+    "sensory_support": false,
+    "pets_allowed": true
   }
 ]

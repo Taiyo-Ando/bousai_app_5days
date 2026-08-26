@@ -154,3 +154,21 @@ main { padding: 32px 24px 72px; }
 }
 
 body > h1, body > nav, body > hr { display: none; }
+
+form fieldset {
+  max-width: 720px;
+  margin: 18px 0;
+  padding: 14px 16px;
+  border: 1px solid #dbe3ee;
+  background: #fff;
+}
+
+form fieldset label { display: inline-block; margin: 6px 18px 6px 0; }
+
+.table-wrapper { overflow-x: auto; margin: 18px 0; }
+.shelter-results { width: 100%; min-width: 760px; border-collapse: collapse; background: #fff; }
+.shelter-results th, .shelter-results td { padding: 12px 10px; border: 1px solid #dbe3ee; text-align: center; white-space: nowrap; }
+.shelter-results thead th { color: #fff; background: var(--blue); font-weight: 700; }
+.shelter-results tbody th { color: var(--text); text-align: left; white-space: normal; }
+.shelter-results tbody tr:nth-child(even) { background: #f8fafc; }
+.shelter-results small { color: var(--muted); font-weight: 400; }

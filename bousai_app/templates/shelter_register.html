@@ -16,7 +16,11 @@
 <form method="POST">
   <p>
     <label for="name">避難所名（必須）</label><br>
-    <input type="text" id="name" name="name">
+    <input type="text" id="name" name="name" required>
+  </p>
+  <p>
+    <label for="address">避難所の住所（必須）</label><br>
+    <input type="text" id="address" name="address" required>
   </p>
   <p><button type="submit">登録</button></p>
 </form>

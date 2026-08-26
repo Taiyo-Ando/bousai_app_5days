@@ -4,6 +4,8 @@ from functools import wraps
 import json
 import os
 import urllib.request
+import urllib.parse
+import math
 from datetime import datetime, timedelta, timezone
 
 # app.py はプロジェクト直下に置く。
@@ -145,6 +147,68 @@ def format_report_time(iso_str):
 def filter_shelters(district=None):
     """district 指定があれば一致する避難所のみ、なければ全件を返す"""
     return [s for s in shelters if not district or s.get('district') == district]
+
+
+def geocode_address(address):
+    """住所を緯度・経度に変換する（見つからなければ None）。"""
+    query = urllib.parse.urlencode({
+        'q': address,
+        'format': 'jsonv2',
+        'limit': 1,
+        'countrycodes': 'jp'
+    })
+    request = urllib.request.Request(
+        f'https://nominatim.openstreetmap.org/search?{query}',
+        headers={'User-Agent': 'bousai-app/1.0'}
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            locations = json.loads(response.read())
+        if not locations:
+            return None
+        return float(locations[0]['lat']), float(locations[0]['lon'])
+    except (OSError, ValueError, KeyError, json.JSONDecodeError):
+        return None
+
+
+def distance_km(latitude, longitude, target_latitude, target_longitude):
+    """2地点間の距離をキロメートルで返す。"""
+    earth_radius_km = 6371
+    latitude_1, latitude_2 = math.radians(latitude), math.radians(target_latitude)
+    delta_latitude = math.radians(target_latitude - latitude)
+    delta_longitude = math.radians(target_longitude - longitude)
+    value = (
+        math.sin(delta_latitude / 2) ** 2
+        + math.cos(latitude_1) * math.cos(latitude_2)
+        * math.sin(delta_longitude / 2) ** 2
+    )
+    return 2 * earth_radius_km * math.asin(math.sqrt(value))
+
+
+def shelters_by_distance(address):
+    """入力住所を基準に、座標を持つ避難所を近い順に返す。"""
+    location = geocode_address(address)
+    if location is None:
+        return None
+
+    latitude, longitude = location
+    results = []
+    for shelter in shelters:
+        try:
+            shelter_with_distance = dict(shelter)
+            shelter_with_distance['distance_km'] = round(
+                distance_km(
+                    latitude,
+                    longitude,
+                    float(shelter['latitude']),
+                    float(shelter['longitude'])
+                ),
+                1
+            )
+            results.append(shelter_with_distance)
+        except (KeyError, TypeError, ValueError):
+            continue
+    return sorted(results, key=lambda shelter: shelter['distance_km'])
 
 
 def parse_area_warnings(warning_data):
@@ -341,8 +405,30 @@ def shelter_register():
                 message='避難所名を入力してください。'
             )
 
+        address = request.form.get('address', '').strip()
+        if not address:
+            return render_template(
+                'shelter_register.html',
+                error=True,
+                message='避難所の住所を入力してください。'
+            )
+
+        location = geocode_address(address)
+        if location is None:
+            return render_template(
+                'shelter_register.html',
+                error=True,
+                message='住所を確認できませんでした。正しい住所を入力してください。'
+            )
+
         next_id = max((shelter.get('id', 0) for shelter in shelters), default=0) + 1
-        shelters.append({'id': next_id, 'name': name})
+        shelters.append({
+            'id': next_id,
+            'name': name,
+            'address': address,
+            'latitude': location[0],
+            'longitude': location[1]
+        })
         try:
             with open(DATA_FILE, 'w', encoding='utf-8') as f:
                 json.dump(shelters, f, ensure_ascii=False, indent=2)
@@ -383,8 +469,27 @@ def board():
 # 検索結果ページ：templates/search_results.html を返す
 @app.route('/search_results')
 def search_results():
-    results = filter_shelters(request.args.get('district'))
-    return render_template('search_results.html', results=results)
+    address = request.args.get('address', '').strip()
+    if not address:
+        return redirect(url_for('shelter_search'))
+
+    results = shelters_by_distance(address)
+    if results is None:
+        return render_template(
+            'search_results.html',
+            results=[],
+            address=address,
+            error='入力された住所を確認できませんでした。'
+        )
+    error = None
+    if not results and shelters:
+        error = '避難所の位置情報が登録されていません。管理者に登録内容の更新を依頼してください。'
+    return render_template(
+        'search_results.html',
+        results=results,
+        address=address,
+        error=error
+    )
 
 # JSON API：/shelters?district=地区名
 @app.route('/shelters', methods=['GET'])

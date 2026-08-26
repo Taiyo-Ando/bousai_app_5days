@@ -2,7 +2,15 @@
 
 {% block content %}
 <h2>避難所検索</h2>
-<p>登録されている避難所を確認できます。</p>
+<p>現在地の住所から近い順に避難所を検索できます。</p>
+
+<form method="get" action="{{ url_for('search_results') }}">
+	<p>
+		<label for="address">現在地の住所</label><br>
+		<input type="text" id="address" name="address" required placeholder="例：青森市中央1丁目1-1">
+	</p>
+	<p><button type="submit">検索</button></p>
+</form>
 
 <p><a href="/all_shelters">全施設一覧</a></p>
 {% endblock %}

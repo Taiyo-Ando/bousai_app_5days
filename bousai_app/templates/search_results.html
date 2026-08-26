@@ -3,10 +3,22 @@
 {% block content %}
 <h2>検索結果</h2>
 
+{% if address %}
+  <p>検索住所：{{ address }}</p>
+{% endif %}
+
+{% if error %}
+  <p>{{ error }}</p>
+{% endif %}
+
 {% if results %}
   <ul>
     {% for shelter in results %}
-    <li>{{ shelter.name }}</li>
+    <li>
+      <strong>{{ shelter.name }}</strong>
+      {% if shelter.distance_km is defined %}（約{{ shelter.distance_km }} km）{% endif %}
+      {% if shelter.address %}<br>{{ shelter.address }}{% endif %}
+    </li>
     {% endfor %}
   </ul>
 {% else %}

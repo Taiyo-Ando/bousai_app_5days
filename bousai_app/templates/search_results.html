@@ -27,6 +27,7 @@
         <th>バリアフリー</th>
         <th>多目的トイレ</th>
         <th>視覚・聴覚対応</th>
+        <th>地図・外観</th>
       </tr>
     </thead>
     <tbody>
@@ -39,6 +40,7 @@
         <td>{{ '対応' if shelter.wheelchair else '非対応' }}</td>
         <td>{{ 'あり' if shelter.multipurpose_toilet else 'なし' }}</td>
         <td>{{ 'あり' if shelter.sensory_support else 'なし' }}</td>
+        <td><a href="{{ url_for('shelter_detail', shelter_id=shelter.id, address=address, features=requested_features) }}">詳細を見る</a></td>
       </tr>
     {% endfor %}
     </tbody>

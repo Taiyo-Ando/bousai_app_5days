@@ -488,6 +488,15 @@ def all_shelters():
     return render_template('search_results.html', results=shelters)
 
 
+# 避難所の地図・外観ページ
+@app.route('/shelter/<int:shelter_id>')
+def shelter_detail(shelter_id):
+    shelter = next((item for item in shelters if item.get('id') == shelter_id), None)
+    if shelter is None:
+        return '避難所が見つかりませんでした', 404
+    return render_template('shelter_detail.html', shelter=shelter)
+
+
 # 指示ボード：住民向けの指示を一覧で確認する
 @app.route('/board')
 @login_required

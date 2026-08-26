@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>{{ shelter.name }}</h2>
+<p>{{ shelter.address }}</p>
+
+<section class="detail-section">
+  <h3>地図</h3>
+  <div class="map-frame detail-map-frame">
+    <div id="shelterDetailMap"></div>
+  </div>
+</section>
+
+<section class="detail-section">
+  <h3>外観</h3>
+  <div class="appearance-placeholder" role="img" aria-label="外観画像は準備中です">
+    <span>外観画像準備中</span>
+  </div>
+</section>
+
+<p>
+  <a href="{{ url_for('search_results', address=request.args.get('address'), features=request.args.getlist('features')) }}">検索結果に戻る</a>
+  |
+  <a href="{{ url_for('shelter_search') }}">検索画面に戻る</a>
+</p>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const latitude = {{ shelter.latitude|tojson }};
+  const longitude = {{ shelter.longitude|tojson }};
+  const map = L.map('shelterDetailMap').setView([latitude, longitude], 16);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  L.marker([latitude, longitude]).addTo(map)
+    .bindPopup({{ shelter.name|tojson }})
+    .openPopup();
+});
+</script>
+{% endblock %}

@@ -4,31 +4,46 @@
   <meta charset="utf-8">
   <title>{% block title %}防災アプリ{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body>
-  <!-- ヘッダー -->
-  <h1>防災アプリ</h1>
+  <header class="site-header">
+    <div class="header-inner">
+      <h1 class="site-title"><a href="/">防災アプリ</a></h1>
+      <button class="menu-toggle" type="button" aria-label="メニューを開く" aria-expanded="false" aria-controls="siteNav">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    </div>
+  </header>
 
-  <!-- ナビゲーション -->
-  <nav>
-    <a href="/">ホーム</a> |
-    <a href="/shelter_search">避難所検索</a> |
-    <a href="/shelter_register">避難所登録</a> |
+  <nav id="siteNav" class="site-nav" aria-label="メインメニュー">
+    <a href="/">ホーム</a>
+    <a href="/shelter_search">避難所検索</a>
+    <a href="/shelter_register">避難所登録</a>
     <a href="/board">指示・発信ボード</a>
-    ｜
     {% if session.logged_in %}
-      ログイン中{% if session.username %}（{{ session.username }}）{% endif %}
+      <span class="nav-status">ログイン中{% if session.username %}（{{ session.username }}）{% endif %}</span>
       <a href="/logout">ログアウト</a>
     {% else %}
-      未ログイン
+      <span class="nav-status">未ログイン</span>
       <a href="/login">ログイン</a>
     {% endif %}
   </nav>
-  <hr>
 
   <main>
-    <!-- ここに子テンプレートの content が入る -->
     {% block content %}{% endblock %}
   </main>
+  <script>
+    const menuToggle = document.querySelector('.menu-toggle');
+    const siteNav = document.querySelector('#siteNav');
+    menuToggle.addEventListener('click', function () {
+      const isOpen = siteNav.classList.toggle('is-open');
+      menuToggle.setAttribute('aria-expanded', isOpen);
+      menuToggle.innerHTML = isOpen
+        ? '<i class="fa-solid fa-xmark"></i>'
+        : '<i class="fa-solid fa-bars"></i>';
+    });
+  </script>
 </body>
 </html>

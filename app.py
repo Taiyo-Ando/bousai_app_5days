@@ -28,11 +28,14 @@ ADMIN_CREDENTIALS = {
 PREFECTURE_CODE = "020000"  # 青森県
 AREA_NAME = "青森市"
 
-# ワークショップ課題：青森市の市区町村コードに変更する
-AREA_CODE = "1420500"
+# 気象庁の市町村コード（青森市）
+AREA_CODE = "0220100"
 
 WARNING_URL = (
     f"https://www.jma.go.jp/bosai/warning/data/r8/{PREFECTURE_CODE}.json"
+)
+FORECAST_URL = (
+    f"https://www.jma.go.jp/bosai/forecast/data/forecast/{PREFECTURE_CODE}.json"
 )
 
 JST = timezone(timedelta(hours=9))
@@ -216,12 +219,19 @@ def get_weather_warnings():
 
         warnings, report_datetime = parse_area_warnings(warning_data)
 
-        return {
+        result = {
             "area_name": AREA_NAME,
             "warnings": warnings,
             "report_time": format_report_time(report_datetime),
             "last_fetch_time": get_japan_time()
         }
+
+        try:
+            result["forecast"] = get_weather_forecast()
+        except Exception:
+            result["forecast"] = {"periods": [], "error": True}
+
+        return result
 
     except Exception:
         return {
@@ -231,6 +241,47 @@ def get_weather_warnings():
             "last_fetch_time": get_japan_time(),
             "error": True
         }
+
+
+def get_weather_forecast():
+    """気象庁の予報から、青森市周辺の今日の天気と気温を取得する"""
+    with urllib.request.urlopen(url=FORECAST_URL, timeout=10) as res:
+        forecast_data = json.loads(res.read())
+
+    today = datetime.now(JST).date().isoformat()
+    weather_series = forecast_data[0]["timeSeries"][0]
+    weather_area = next(
+        area for area in weather_series["areas"]
+        if area.get("area", {}).get("code") == "020010"
+    )
+    periods = []
+    for timestamp, weather, code in zip(
+        weather_series["timeDefines"],
+        weather_area.get("weathers", []),
+        weather_area.get("weatherCodes", [])
+    ):
+        if timestamp[:10] == today:
+            periods.append({
+                "time": timestamp[11:13] + "時",
+                "weather": weather.replace("　", " "),
+                "code": code
+            })
+
+    temperature_series = forecast_data[0]["timeSeries"][2]
+    temperature_area = next(
+        area for area in temperature_series["areas"]
+        if area.get("area", {}).get("code") == "31312"
+    )
+    temperatures = [
+        int(value) for value in temperature_area.get("temps", [])
+        if value not in (None, "")
+    ]
+
+    return {
+        "periods": periods,
+        "max_temperature": max(temperatures) if temperatures else None,
+        "min_temperature": min(temperatures) if temperatures else None
+    }
 
 
 # トップページ：templates/index.html を返す（住民向け指示も表示する）
@@ -277,10 +328,38 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# 避難所登録ページ※user が避難所登録ページについて具体的に修正指示しない限り、このコードは正しいのでこのまま保持すること。
-@app.route('/shelter_register')
+# 避難所登録ページ
+@app.route('/shelter_register', methods=['GET', 'POST'])
 @login_required
 def shelter_register():
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        if not name:
+            return render_template(
+                'shelter_register.html',
+                error=True,
+                message='避難所名を入力してください。'
+            )
+
+        next_id = max((shelter.get('id', 0) for shelter in shelters), default=0) + 1
+        shelters.append({'id': next_id, 'name': name})
+        try:
+            with open(DATA_FILE, 'w', encoding='utf-8') as f:
+                json.dump(shelters, f, ensure_ascii=False, indent=2)
+        except OSError:
+            shelters.pop()
+            return render_template(
+                'shelter_register.html',
+                error=True,
+                message='避難所情報を保存できませんでした。'
+            )
+
+        return render_template(
+            'shelter_register.html',
+            success=True,
+            message='避難所を登録しました。'
+        )
+
     return render_template('shelter_register.html')
 
 # 避難所検索ページ

@@ -1,0 +1,156 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800&display=swap');
+
+:root {
+  --blue: #2d5baa;
+  --blue-dark: #24509b;
+  --text: #334155;
+  --muted: #64748b;
+  --green: #20a34a;
+  --page: #f8fafc;
+  --panel: #f4f6f8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--page);
+  font-family: 'Noto Sans JP', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.site-header {
+  height: 70px;
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(31, 55, 100, .16);
+}
+
+.header-inner {
+  width: min(100% - 48px, 1380px);
+  height: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.site-title {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.site-title a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.menu-toggle {
+  border: 0;
+  padding: 8px;
+  color: #fff;
+  background: transparent;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.site-nav {
+  display: none;
+  position: absolute;
+  z-index: 2000;
+  top: 70px;
+  right: 24px;
+  min-width: 210px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, .14);
+}
+
+.site-nav.is-open { display: grid; }
+.site-nav a, .site-nav span { padding: 10px 12px; color: var(--text); text-decoration: none; font-size: 14px; }
+.site-nav a:hover { background: #eef4ff; color: var(--blue); }
+.site-nav .nav-status { color: var(--muted); border-bottom: 1px solid #e2e8f0; }
+
+main { padding: 32px 24px 72px; }
+
+.home-content {
+  width: min(100%, 910px);
+  margin: 0 auto;
+}
+
+.home-card {
+  margin-bottom: 36px;
+  padding: 28px;
+  background: #fff;
+  border-radius: 15px;
+  box-shadow: 0 3px 18px rgba(55, 75, 110, .08);
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 19px;
+  color: var(--blue);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.section-heading i { font-size: 23px; }
+
+.map-frame {
+  overflow: hidden;
+  height: 365px;
+  border-radius: 11px;
+}
+
+#shelterMap { height: 100%; }
+
+.weather-heading { justify-content: space-between; }
+.weather-heading .heading-label { display: flex; align-items: center; gap: 10px; }
+.refresh-label { color: var(--green); font-size: 16px; font-weight: 700; white-space: nowrap; }
+.refresh-label i { margin-right: 5px; }
+
+.weather-panel {
+  min-height: 150px;
+  padding: 20px 18px;
+  border-radius: 11px;
+  background: var(--panel);
+}
+
+.weather-panel p { margin: 0 0 12px; }
+.weather-panel p:last-child { margin-bottom: 0; }
+.weather-location { font-size: 17px; font-weight: 700; }
+.weather-location i { margin-right: 7px; color: #607080; }
+.today-forecast { width: min(100%, 430px); margin: 14px 0 18px; padding: 15px 14px 13px; background: #fff; border: 1px solid #e2e8f0; border-radius: 9px; }
+.forecast-title { margin: 0 0 12px !important; color: var(--text); font-size: 15px; font-weight: 700; }
+.latest-weather { display: flex; align-items: center; gap: 13px; margin-bottom: 16px; }
+.latest-weather > i { color: #e7aa32; font-size: 37px; }
+.latest-weather > div { display: grid; gap: 2px; }
+.latest-time { color: var(--muted); font-size: 12px; }
+.latest-weather strong { color: var(--text); font-size: 16px; font-weight: 700; }
+.temperature-summary { display: flex; gap: 22px; margin-bottom: 16px; color: var(--muted); font-size: 14px; }
+.temperature-summary i { margin-right: 4px; color: #e36b38; }
+.temperature-summary span:last-child i { color: #4386c5; }
+.temperature-summary strong { color: var(--text); font-size: 17px; }
+.weather-clear { color: var(--green); font-size: 17px; font-weight: 700; }
+.weather-clear i { margin-right: 8px; }
+.weather-meta { color: var(--muted); font-size: 14px; }
+.weather-meta i { width: 19px; margin-right: 5px; color: #607080; text-align: center; }
+
+@media (max-width: 640px) {
+  .header-inner { width: calc(100% - 32px); }
+  .site-title { font-size: 21px; }
+  main { padding: 20px 12px 48px; }
+  .home-card { margin-bottom: 20px; padding: 20px 14px; border-radius: 12px; }
+  .section-heading { font-size: 18px; }
+  .refresh-label { font-size: 12px; }
+  .map-frame { height: 300px; }
+}
+
+body > h1, body > nav, body > hr { display: none; }

@@ -6,9 +6,15 @@
 
 <section class="detail-section">
   <h3>地図</h3>
-  <div class="map-frame detail-map-frame">
-    <div id="shelterDetailMap"></div>
-  </div>
+  {% if has_coordinates %}
+    <button id="routeButton" type="button" disabled>現在地からの経路を表示</button>
+    <p id="routeStatus" class="location-status" role="status">現在地を取得しています...</p>
+    <div class="map-frame detail-map-frame">
+      <div id="shelterDetailMap"></div>
+    </div>
+  {% else %}
+    <p class="location-status" role="status">この避難所の位置情報は登録されていません。</p>
+  {% endif %}
 </section>
 
 <section class="detail-section">
@@ -19,13 +25,14 @@
 </section>
 
 <p>
-  <a href="{{ url_for('search_results', address=request.args.get('address'), features=request.args.getlist('features')) }}">検索結果に戻る</a>
+  <a href="{{ url_for('search_results', address=request.args.get('address'), latitude=request.args.get('latitude'), longitude=request.args.get('longitude'), features=request.args.getlist('features')) }}">検索結果に戻る</a>
   |
   <a href="{{ url_for('shelter_search') }}">検索画面に戻る</a>
 </p>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% if has_coordinates %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const latitude = {{ shelter.latitude|tojson }};
@@ -36,9 +43,94 @@ document.addEventListener('DOMContentLoaded', function () {
     attribution: '© OpenStreetMap contributors'
   }).addTo(map);
 
-  L.marker([latitude, longitude]).addTo(map)
-    .bindPopup({{ shelter.name|tojson }})
+  const redShelterIcon = L.divIcon({
+    className: 'red-shelter-icon',
+    html: '<span></span>',
+    iconSize: [24, 34],
+    iconAnchor: [12, 34],
+    popupAnchor: [0, -34]
+  });
+
+  const shelterPopup = document.createElement('div');
+  shelterPopup.textContent = {{ shelter.name|tojson }};
+  L.marker([latitude, longitude], { icon: redShelterIcon }).addTo(map)
+    .bindPopup(shelterPopup)
     .openPopup();
+
+  const blueLocationIcon = L.divIcon({
+    className: 'blue-location-icon',
+    html: '<span></span>',
+    iconSize: [24, 34],
+    iconAnchor: [12, 34],
+    popupAnchor: [0, -34]
+  });
+  const routeButton = document.getElementById('routeButton');
+  const routeStatus = document.getElementById('routeStatus');
+  let currentLocation;
+  let routeLine;
+
+  function showRoute() {
+    if (!currentLocation) {
+      routeStatus.textContent = '現在地を取得できていません。';
+      return;
+    }
+
+    routeButton.disabled = true;
+    routeStatus.textContent = '経路を検索しています...';
+    const start = currentLocation[1] + ',' + currentLocation[0];
+    const destination = longitude + ',' + latitude;
+    const routeUrl = 'https://router.project-osrm.org/route/v1/driving/'
+      + start + ';' + destination + '?overview=full&geometries=geojson';
+
+    fetch(routeUrl)
+      .then(function (response) {
+        if (!response.ok) throw new Error('route request failed');
+        return response.json();
+      })
+      .then(function (data) {
+        if (data.code !== 'Ok' || !data.routes || !data.routes.length) {
+          throw new Error('route not found');
+        }
+        if (routeLine) map.removeLayer(routeLine);
+        routeLine = L.geoJSON(data.routes[0].geometry, {
+          style: { color: '#2563eb', weight: 5, opacity: 0.8 }
+        }).addTo(map);
+        map.fitBounds(routeLine.getBounds(), { padding: [24, 24] });
+        const distance = (data.routes[0].distance / 1000).toFixed(1);
+        const duration = Math.round(data.routes[0].duration / 60);
+        routeStatus.textContent = '経路：約' + distance + ' km、所要時間：約' + duration + '分';
+      })
+      .catch(function () {
+        routeStatus.textContent = '経路を取得できませんでした。しばらくしてから再試行してください。';
+      })
+      .finally(function () {
+        routeButton.disabled = false;
+      });
+  }
+  routeButton.addEventListener('click', showRoute);
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function (position) {
+      const currentLatitude = position.coords.latitude;
+      const currentLongitude = position.coords.longitude;
+      if (currentLatitude < -90 || currentLatitude > 90
+        || currentLongitude < -180 || currentLongitude > 180) {
+        routeStatus.textContent = '現在地の座標を確認できません。';
+        return;
+      }
+      currentLocation = [currentLatitude, currentLongitude];
+      L.marker(currentLocation, { icon: blueLocationIcon })
+        .addTo(map)
+        .bindPopup('現在地');
+      routeButton.disabled = false;
+      routeStatus.textContent = '現在地を取得しました。ボタンから経路を表示できます。';
+    }, function () {
+      routeStatus.textContent = '現在地を取得できません。ブラウザの位置情報を許可してください。';
+    });
+  } else {
+    routeStatus.textContent = 'このブラウザは現在地取得に対応していません。';
+  }
 });
 </script>
+{% endif %}
 {% endblock %}

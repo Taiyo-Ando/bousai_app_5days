@@ -4,20 +4,95 @@
 <h2>避難所検索</h2>
 <p>現在地の住所から近い順に避難所を検索できます。</p>
 
-<form method="get" action="{{ url_for('search_results') }}">
+<form id="shelterSearchForm" method="get" action="{{ url_for('search_results') }}">
 	<p>
 		<label for="address">現在地の住所</label><br>
-		<input type="text" id="address" name="address" required placeholder="例：青森市中央1丁目1-1">
+		<input type="text" id="address" name="address" placeholder="例：青森市中央1丁目1-1">
+		<input type="hidden" id="latitude" name="latitude">
+		<input type="hidden" id="longitude" name="longitude">
 	</p>
+	<p id="locationStatus" class="location-status" role="status">現在地を取得しています...</p>
 	<fieldset>
 		<legend>必要な設備・対応</legend>
 		<label><input type="checkbox" name="features" value="wheelchair"> 車いす対応</label>
 		<label><input type="checkbox" name="features" value="multipurpose_toilet"> 多目的トイレ</label>
-		<label><input type="checkbox" name="features" value="sensory_support"> 視覚・聴覚障碍者向け施設</label>
+		<label><input type="checkbox" name="features" value="sensory_support"> 視覚・聴覚障害者向け施設</label>
 		<label><input type="checkbox" name="features" value="pets_allowed"> ペット可</label>
 	</fieldset>
 	<p><button type="submit">検索</button></p>
 </form>
 
 <p><a href="/all_shelters">全施設一覧</a></p>
+
+<div class="map-frame search-map-frame">
+	<div id="shelterSearchMap"></div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+	const shelters = {{ map_shelters|tojson }};
+	const map = L.map('shelterSearchMap').setView([40.8244, 140.7400], 12);
+
+	L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		attribution: '© OpenStreetMap contributors'
+	}).addTo(map);
+	const redShelterIcon = L.divIcon({
+		className: 'red-shelter-icon',
+		html: '<span></span>',
+		iconSize: [24, 34],
+		iconAnchor: [12, 34],
+		popupAnchor: [0, -34]
+	});
+	const blueLocationIcon = L.divIcon({
+		className: 'blue-location-icon',
+		html: '<span></span>',
+		iconSize: [24, 34],
+		iconAnchor: [12, 34],
+		popupAnchor: [0, -34]
+	});
+
+	shelters.forEach(function (shelter) {
+		const popup = document.createElement('div');
+		const name = document.createElement('strong');
+		name.textContent = shelter.name || '名称不明';
+		popup.appendChild(name);
+		popup.appendChild(document.createElement('br'));
+		popup.appendChild(document.createTextNode(shelter.address || '住所不明'));
+		L.marker([shelter.latitude, shelter.longitude], { icon: redShelterIcon })
+			.addTo(map)
+			.bindPopup(popup);
+	});
+
+	const form = document.getElementById('shelterSearchForm');
+	const locationStatus = document.getElementById('locationStatus');
+	let currentLocationMarker;
+	if (navigator.geolocation) {
+		navigator.geolocation.getCurrentPosition(function (position) {
+			const latitude = position.coords.latitude;
+			const longitude = position.coords.longitude;
+			document.getElementById('latitude').value = latitude;
+			document.getElementById('longitude').value = longitude;
+			map.setView([latitude, longitude], 14);
+			currentLocationMarker = L.marker([latitude, longitude], { icon: blueLocationIcon })
+				.addTo(map).bindPopup('現在地');
+			locationStatus.textContent = '現在地を取得しました。検索時は現在地から距離を計算します。';
+		}, function () {
+			locationStatus.textContent = '現在地を取得できませんでした。住所を入力して検索してください。';
+		});
+	} else {
+		locationStatus.textContent = 'このブラウザは現在地取得に対応していません。住所を入力して検索してください。';
+	}
+
+	form.addEventListener('submit', function (event) {
+		const hasLocation = document.getElementById('latitude').value
+			&& document.getElementById('longitude').value;
+		if (!hasLocation && !document.getElementById('address').value.trim()) {
+			event.preventDefault();
+			locationStatus.textContent = '現在地の取得を許可するか、住所を入力してください。';
+		}
+	});
+});
+</script>
 {% endblock %}

@@ -1,27 +1,41 @@
 {% extends "base.html" %}
-
+{% block title %}避難所登録 - 防災アプリ{% endblock %}
 {% block content %}
-<h2>避難所登録</h2>
-<p>新しい避難所情報を登録します。</p>
-
-<!-- 成功・エラーメッセージ表示 -->
-{% if success %}
-  <p>{{ message }}</p>
-{% endif %}
-
-{% if error %}
-  <p>{{ message }}</p>
-{% endif %}
-
-<form method="POST">
-  <p>
-    <label for="name">避難所名（必須）</label><br>
-    <input type="text" id="name" name="name" required>
-  </p>
-  <p>
-    <label for="address">避難所の住所（必須）</label><br>
-    <input type="text" id="address" name="address" required>
-  </p>
-  <p><button type="submit">登録</button></p>
-</form>
+<div class="page-shell register-page">
+  <h2>避難所登録</h2><p>登録する内容を選択してください。</p>
+  {% if error %}<p class="form-message error" role="alert">{{ message }}</p>{% endif %}
+  {% if success %}<p class="form-message success" role="status">{{ message }}</p>{% endif %}
+  <div class="panel-switcher" role="group" aria-label="登録内容の選択">
+    <button type="button" class="panel-toggle" data-panel="shelterPanel" aria-expanded="false">＋ 避難所登録</button>
+    <button type="button" class="panel-toggle" data-panel="statusPanel" aria-expanded="false">＋ 避難所状況登録</button>
+  </div>
+  <section id="shelterPanel" class="entry-panel" hidden aria-labelledby="shelterPanelTitle"><h3 id="shelterPanelTitle">避難所登録</h3><p>新しい避難所情報を登録します。</p>
+    <form id="shelterForm" method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="name">避難所名<span class="required">[*必須]</span></label><input id="name" name="name" type="text" required value="{{ request.form.get('name', '') }}">
+      <fieldset><legend>住所<span class="required">[*必須]</span></legend><label for="postal_code">郵便番号（ハイフンなし）</label><div class="inline-controls"><input id="postal_code" name="postal_code" inputmode="numeric" pattern="[0-9]{3}-?[0-9]{4}" required value="{{ request.form.get('postal_code', '') }}"><button id="zipSearch" type="button">住所を検索</button></div><p id="zipStatus" class="field-status" role="status" aria-live="polite"></p><label for="address">住所</label><input id="address" name="address" type="text" required value="{{ request.form.get('address', '') }}"></fieldset>
+      <label for="capacity">収容人数<span class="required">[*必須]</span>（半角数字）</label><div class="unit-input"><input id="capacity" name="capacity" type="text" inputmode="numeric" pattern="[0-9]+" required value="{{ request.form.get('capacity', '') }}"><span>名</span></div>
+      <label for="building_image_url">画像リンク</label><input id="building_image_url" name="building_image_url" type="url" placeholder="https://example.com/building.jpg"><label for="building_image">画像ファイル</label><input id="building_image" name="building_image" type="file" accept="image/jpeg,image/png,image/gif,image/webp">
+      <fieldset><legend>対応設備</legend>{% for value, label in [('wheelchair','車いす対応'), ('multipurpose_toilet','多目的トイレ'), ('visual_hearing_support','視覚・聴覚障害者対応設備'), ('pets_allowed','ペット可能')] %}<label class="check-label"><input type="checkbox" name="facilities" value="{{ value }}">{{ label }}</label>{% endfor %}</fieldset><button class="primary-button" type="submit">登録</button>
+    </form>
+  </section>
+  <section id="statusPanel" class="entry-panel" hidden aria-labelledby="statusPanelTitle"><h3 id="statusPanelTitle">避難所状況登録</h3><p>登録済みの避難所の状況を登録します。</p>
+    <form id="statusForm" method="post" action="{{ url_for('shelter_status') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label for="status_name">避難所名<span class="required">[*必須]</span></label><div class="inline-controls"><input id="status_name" name="status_name" list="shelterNames" required><button id="statusSearch" type="button">検索</button></div><datalist id="shelterNames">{% for shelter in shelters %}<option value="{{ shelter.name }}">{% endfor %}</datalist><p id="statusSearchResult" class="field-status" role="status" aria-live="polite"></p>
+      <label for="congestion">混雑状況<span class="required">[*必須]</span></label><select id="congestion" name="congestion" required><option value="">選択してください</option><option value="○">○ 空きあり</option><option value="△">△ やや混雑</option><option value="✕">✕ 受入不可</option></select><label for="remaining_capacity">残収容数<span class="required">[*必須]</span>（半角数字）</label><div class="unit-input"><input id="remaining_capacity" name="remaining_capacity" type="text" inputmode="numeric" pattern="[0-9]+" required><span>名</span></div><label for="status_note">備考</label><textarea id="status_note" name="status_note" rows="5"></textarea><button class="primary-button" type="submit">登録</button>
+    </form>
+  </section>
+</div>
+<dialog id="confirmDialog" aria-labelledby="confirmTitle"><h2 id="confirmTitle">登録内容の確認</h2><dl id="confirmList"></dl><div class="dialog-actions"><button id="cancelConfirm" type="button">戻る</button><button id="submitConfirm" class="primary-button" type="button">この内容で登録</button></div></dialog>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const toggles=[...document.querySelectorAll('.panel-toggle')], panels=[...document.querySelectorAll('.entry-panel')];
+  toggles.forEach(toggle=>toggle.addEventListener('click',()=>{const panel=document.getElementById(toggle.dataset.panel), opening=panel.hidden; panels.forEach(item=>item.hidden=true); toggles.forEach(item=>{item.setAttribute('aria-expanded','false');item.textContent=item.dataset.panel==='shelterPanel'?'＋ 避難所登録':'＋ 避難所状況登録';}); if(opening){panel.hidden=false;toggle.setAttribute('aria-expanded','true');toggle.textContent=toggle.dataset.panel==='shelterPanel'?'− 避難所登録':'− 避難所状況登録';}}));
+  const dialog=document.getElementById('confirmDialog'); let pendingForm;
+  const text=value=>value||'未入力';
+  function showConfirm(form){pendingForm=form;const data=new FormData(form), status=form.id==='statusForm', rows=status?[['避難所名',data.get('status_name')],['混雑状況',({'○':'○ 空きあり','△':'△ やや混雑','✕':'✕ 受入不可'})[data.get('congestion')]],['残収容数',data.get('remaining_capacity')?data.get('remaining_capacity')+'名':'未入力'],['備考',data.get('status_note')]]:[['避難所名',data.get('name')],['郵便番号',data.get('postal_code')],['住所',data.get('address')],['収容人数',data.get('capacity')?data.get('capacity')+'名':'未入力'],['画像リンク',data.get('building_image_url')],['画像ファイル名',form.querySelector('[name=building_image]').files[0]?.name],['対応設備',data.getAll('facilities').map(v=>({wheelchair:'車いす対応',multipurpose_toilet:'多目的トイレ',visual_hearing_support:'視覚・聴覚障害者対応設備',pets_allowed:'ペット可能'})[v]).join('、')]]; document.getElementById('confirmList').replaceChildren(...rows.flatMap(([label,value])=>{const dt=document.createElement('dt');dt.textContent=label;const dd=document.createElement('dd');dd.textContent=text(value);return[dt,dd];}));dialog.showModal();}
+  ['shelterForm','statusForm'].forEach(id=>document.getElementById(id).addEventListener('submit',event=>{event.preventDefault();if(event.currentTarget.reportValidity())showConfirm(event.currentTarget);}));
+  document.getElementById('cancelConfirm').onclick=()=>dialog.close();document.getElementById('submitConfirm').onclick=()=>{const button=document.getElementById('submitConfirm');button.disabled=true;pendingForm.submit();};
+  document.getElementById('zipSearch').onclick=async()=>{const status=document.getElementById('zipStatus'),button=document.getElementById('zipSearch'),code=document.getElementById('postal_code').value.replace(/\D/g,'');if(code.length!==7){status.textContent='郵便番号は7桁で入力してください。';return;}button.disabled=true;status.textContent='住所を検索しています。';try{const response=await fetch('https://zipcloud.ibsnet.co.jp/api/search?zipcode='+code),data=await response.json(),result=data.results?.[0];if(result)document.getElementById('address').value=result.address1+result.address2+result.address3;else status.textContent='該当する住所が見つかりませんでした。';}catch(error){status.textContent='住所検索に失敗しました。住所を手入力してください。';}finally{button.disabled=false;}};
+  document.getElementById('statusSearch').onclick=()=>{const name=document.getElementById('status_name').value;document.getElementById('statusSearchResult').textContent=[...document.querySelectorAll('#shelterNames option')].some(option=>option.value===name)?'登録済みの避難所です。':'該当する避難所が見つかりません。';};
+});
+</script>
 {% endblock %}

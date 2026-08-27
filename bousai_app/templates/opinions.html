@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}意見箱 - 防災アプリ{% endblock %}
+{% block content %}
+<div class="page-shell opinions-page">
+  <h2>意見箱</h2>
+  <section class="entry-panel opinion-form-section" aria-labelledby="opinionFormTitle">
+    <h3 id="opinionFormTitle">意見を送る</h3>
+    <p>災害情報に関するご意見をお聞かせください。</p>
+    {% if error %}<p class="form-message error" role="alert">{{ error }}</p>{% endif %}
+    {% if message %}<p class="form-message success" role="status">{{ message }}</p>{% endif %}
+    <form method="post" id="opinionForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="opinion">ご意見<span class="required">[*必須]</span></label>
+      <textarea id="opinion" name="opinion" rows="8" maxlength="2000" required>{{ opinion_value }}</textarea>
+      <p class="field-hint">2000文字以内</p>
+      <button class="primary-button" type="submit">送信する</button>
+    </form>
+  </section>
+
+  <section class="opinion-list-section" aria-labelledby="opinionListTitle">
+    <h3 id="opinionListTitle">ご意見一覧</h3>
+    {% if opinions %}
+      <div class="opinion-list">
+      {% for item in opinions[:3] %}
+        <article class="opinion-item"><time datetime="{{ item.created_at }}">{{ item.created_at or '不明' }}</time><p>{{ item.opinion }}</p></article>
+      {% endfor %}
+      </div>
+      {% if opinions|length > 3 %}
+      <details class="older-opinions"><summary>以前のご意見（{{ opinions|length - 3 }}件）</summary><div class="opinion-list">
+        {% for item in opinions[3:] %}<article class="opinion-item"><time datetime="{{ item.created_at }}">{{ item.created_at or '不明' }}</time><p>{{ item.opinion }}</p></article>{% endfor %}
+      </div></details>
+      {% endif %}
+    {% else %}<p>まだご意見はありません。</p>{% endif %}
+  </section>
+</div>
+<script>
+document.getElementById('opinionForm').addEventListener('submit', function () {
+  const button = this.querySelector('button[type="submit"]');
+  if (this.reportValidity()) { button.disabled = true; button.textContent = '送信中...'; }
+});
+</script>
+{% endblock %}

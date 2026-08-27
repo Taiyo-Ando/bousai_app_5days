@@ -1,25 +1,14 @@
 {% extends "base.html" %}
-
 {% block title %}指示・発信ボード - 防災アプリ{% endblock %}
-
 {% block content %}
-<h2>発信ボード</h2>
-<p>住民向けの発信を登録・確認できます。</p>
-
-<!-- 発信一覧 -->
-<h3>発信一覧</h3>
-{% if instructions %}
-<table border="1" cellpadding="5">
-  <tr>
-    <th>内容</th>
-  </tr>
-  {% for inst in instructions %}
-  <tr>
-    <td>{{ inst.content }}{% if inst.shelter %}（避難先: {{ inst.shelter }}）{% endif %}</td>
-  </tr>
-  {% endfor %}
-</table>
-{% else %}
-<p>登録されている指示はありません。</p>
-{% endif %}
+<div class="page-shell board-page"><h2>指示・発信ボード</h2>{% if error %}<p class="form-message error" role="alert">{{ error }}</p>{% endif %}
+  <div class="board-layout">
+    <section class="board-section instruction-form-section"><h3>住民に指示送信</h3><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="send"><fieldset><legend>送信先<span class="required">[*必須]</span></legend>{% for region in ['A地区','B地区','C地区'] %}<label class="check-label"><input type="checkbox" name="regions" value="{{ region }}">{{ region }}</label>{% endfor %}</fieldset><label for="content">発信内容<span class="required">[*必須]</span></label><textarea id="content" name="content" rows="6" required></textarea><button class="primary-button" type="submit">送信</button></form></section>
+    <div class="board-right-column">
+      <section class="board-section"><h3>避難所情報一覧</h3><h4>全施設一覧</h4>{% if shelters %}<ul class="plain-list">{% for shelter in shelters %}<li>{{ shelter.name }}</li>{% endfor %}</ul>{% else %}<p>登録されている避難所はありません。</p>{% endif %}</section>
+      <section class="board-section disaster-section"><h3>災害情報一覧</h3><div class="disaster-scroll-area"><p id="disasterStatus">災害情報を読み込み中...</p><ul id="disasterList" class="disaster-list"></ul></div></section>
+      <section class="board-section history-section"><h3>発信一覧</h3>{% if instructions %}<div class="history-scroll-area"><div class="table-wrapper"><table class="data-table"><thead><tr><th>内容</th><th>送信先</th><th>発信日時</th><th>状態</th><th>操作</th></tr></thead><tbody>{% for inst in instructions %}<tr><td>{{ inst.content }}{% if inst.shelter %}<br>避難先: {{ inst.shelter }}{% endif %}</td><td>{{ inst.regions|join('、') if inst.regions else (inst.shelter or '指定なし') }}</td><td>{{ inst.created_at or '不明' }}</td><td>{{ inst.status or '不明' }}</td><td>{% if inst.status != '解除' %}<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="release"><input type="hidden" name="instruction_id" value="{{ inst.id }}"><button type="submit">解除</button></form>{% else %}解除済み{% endif %}</td></tr>{% endfor %}</tbody></table></div></div>{% else %}<p>現在、発信されている指示はありません。</p>{% endif %}</section>
+    </div>
+  </div>
+</div><script>fetch('{{ url_for('api_disasters') }}').then(response=>{if(!response.ok)throw Error();return response.json();}).then(data=>{const list=document.getElementById('disasterList');if(!data.disasters?.length){document.getElementById('disasterStatus').textContent='現在、災害情報はありません';return;}document.getElementById('disasterStatus').textContent='';data.disasters.forEach(item=>{const li=document.createElement('li');li.className='disaster-item';const header=document.createElement('div');header.className='disaster-item-header';const type=document.createElement('strong');type.className='disaster-type disaster-type-'+String(item.type||'').replace(/[^ぁ-んァ-ン一-龥a-zA-Z0-9]/g,'');type.textContent=item.type||'災害情報';const status=document.createElement('span');status.className='disaster-status';status.textContent=item.status||'不明';header.append(type,status);const meta=document.createElement('p');meta.className='disaster-meta';meta.textContent=(item.datetime||'日時不明')+'　|　'+(item.region||'地域不明');const content=document.createElement('p');content.className='disaster-content';content.textContent=item.content||'内容不明';const link=document.createElement('a');link.href=item.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='公式詳細を見る';li.append(header,meta,content,link);list.appendChild(li);});}).catch(()=>{document.getElementById('disasterStatus').textContent='災害情報を取得できませんでした';});</script>
 {% endblock %}

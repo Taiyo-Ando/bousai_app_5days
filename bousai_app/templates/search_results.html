@@ -1,10 +1,17 @@
 {% extends "base.html" %}
 
+{% macro feature_mark(shelter, key, positive, negative) -%}
+  {% set value = shelter.get(key) %}
+  {% if value is sameas true %}<span class="availability-mark is-available" aria-label="{{ positive }}" title="{{ positive }}">○</span>
+  {% elif value is sameas false %}<span class="availability-mark is-unavailable" aria-label="{{ negative }}" title="{{ negative }}">×</span>
+  {% else %}<span class="availability-mark is-unknown" aria-label="不明" title="不明">不明</span>{% endif %}
+{%- endmacro %}
+
 {% block content %}
 <h2>検索結果</h2>
 
-{% if address %}
-  <p>検索住所：{{ address }}</p>
+{% if address or location %}
+  <p>{% if location %}現在地から検索{% else %}検索住所：{{ address }}{% endif %}</p>
 {% endif %}
 
 {% if requested_features %}
@@ -34,13 +41,13 @@
     {% for shelter in results %}
       <tr>
         <th scope="row">{{ shelter.name }}<br><small>{{ shelter.address }}</small></th>
-        <td>{{ shelter.distance_km }} km</td>
+        <td>{{ shelter.distance_km ~ ' km' if shelter.distance_km is defined and shelter.distance_km is not none else '不明' }}</td>
         <td>{{ shelter.availability|default('不明', true) }}</td>
-        <td>{{ '対応' if shelter.pets_allowed else '非対応' }}</td>
-        <td>{{ '対応' if shelter.wheelchair else '非対応' }}</td>
-        <td>{{ 'あり' if shelter.multipurpose_toilet else 'なし' }}</td>
-        <td>{{ 'あり' if shelter.sensory_support else 'なし' }}</td>
-        <td><a href="{{ url_for('shelter_detail', shelter_id=shelter.id, address=address, features=requested_features) }}">詳細を見る</a></td>
+        <td>{{ feature_mark(shelter, 'pets_allowed', '対応', '非対応') }}</td>
+        <td>{{ feature_mark(shelter, 'wheelchair', '対応', '非対応') }}</td>
+        <td>{{ feature_mark(shelter, 'multipurpose_toilet', 'あり', 'なし') }}</td>
+        <td>{{ feature_mark(shelter, 'sensory_support', 'あり', 'なし') }}</td>
+        <td><a href="{{ url_for('shelter_detail', shelter_id=shelter.id, address=address, latitude=location[0] if location else None, longitude=location[1] if location else None, features=requested_features) }}">詳細を見る</a></td>
       </tr>
     {% endfor %}
     </tbody>

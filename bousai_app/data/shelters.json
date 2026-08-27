@@ -34,5 +34,32 @@
     "multipurpose_toilet": true,
     "sensory_support": false,
     "pets_allowed": true
+  },
+  {
+    "id": 4,
+    "name": "test_避難所1丁目",
+    "postal_code": "5731183",
+    "address": "大阪府枚方市渚南町",
+    "capacity": "100",
+    "building_image": "",
+    "facilities": [],
+    "latitude": 34.826184,
+    "longitude": 135.654586,
+    "congestion": "△",
+    "remaining_capacity": "30",
+    "status_note": ""
+  },
+  {
+    "id": 5,
+    "name": "test_避難所1丁目",
+    "postal_code": "5731183",
+    "address": "大阪府枚方市渚南町",
+    "capacity": "100",
+    "building_image": "",
+    "facilities": [
+      "wheelchair"
+    ],
+    "latitude": 34.826184,
+    "longitude": 135.654586
   }
 ]
